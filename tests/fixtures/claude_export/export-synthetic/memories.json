@@ -1,0 +1,8 @@
+[
+  {
+    "account_uuid": "account-0001",
+    "conversations_memory": "STANDING MEMORY TEXT THAT MUST NEVER BECOME A TURN",
+    "project_memories": [],
+    "memory_files": []
+  }
+]

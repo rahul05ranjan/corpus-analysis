@@ -1,0 +1,10 @@
+[
+  {
+    "uuid": "conv-drift",
+    "name": "synthetic drift",
+    "summary": "",
+    "created_at": "2026-01-08T00:00:00.000000Z",
+    "updated_at": "2026-01-08T00:10:00.000000Z",
+    "account": {"uuid": "account-0001"}
+  }
+]

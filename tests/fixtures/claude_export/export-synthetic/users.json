@@ -1,0 +1,8 @@
+[
+  {
+    "uuid": "user-0001",
+    "full_name": "ACCOUNT FIELD THAT MUST NEVER BE READ",
+    "email_address": "ACCOUNT FIELD THAT MUST NEVER BE READ",
+    "verified_phone_number": "ACCOUNT FIELD THAT MUST NEVER BE READ"
+  }
+]

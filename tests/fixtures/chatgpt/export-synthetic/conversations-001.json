@@ -1,0 +1,29 @@
+[
+  {
+    "conversation_id": "conv-0001",
+    "id": "conv-0001",
+    "create_time": 1767225600.0,
+    "current_node": "node-dup-a",
+    "mapping": {
+      "node-dup-root": {
+        "id": "node-dup-root",
+        "parent": null,
+        "children": ["node-dup-a"],
+        "message": null
+      },
+      "node-dup-a": {
+        "id": "node-dup-a",
+        "parent": "node-dup-root",
+        "children": [],
+        "message": {
+          "id": "msg-dup-a",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767225601.0,
+          "content": {"content_type": "text", "parts": ["a second export of conv-0001, deliberately different so the loser is identifiable"]},
+          "metadata": {},
+          "recipient": "all"
+        }
+      }
+    }
+  }
+]

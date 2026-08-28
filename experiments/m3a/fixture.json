@@ -1,0 +1,49 @@
+{
+ "config": {
+  "brief": "hand-authored synthetic prompt",
+  "brief_source": "fixture.json",
+  "evidence_rules_included": true,
+  "question": "is anything stuck?"
+ },
+ "config_sha256": "e74141923951260c7cff52893a7b6327c92f95c924a1f5129d604b05f3f186b3",
+ "created_at": "2026-08-28T00:00:00+00:00",
+ "evidence": [
+  {
+   "provenance": {
+    "adapter": "manual",
+    "line": 0,
+    "path": "synthetic-fixture",
+    "session_id": "m3a-synthetic-readonly",
+    "sha256": "f45c489b50b02dad07f714eeacb2ed1cfe6c8360b65878d1995996d8de90dde0",
+    "turn_id": "evidence-0"
+   },
+   "sha256": "f45c489b50b02dad07f714eeacb2ed1cfe6c8360b65878d1995996d8de90dde0",
+   "text": "## review-check\nrepo: example-repository   branch: not recorded   status: working\nturns: 4   tool_errors: 0   idle_seconds: 600\ntools: Read \u00d72, Grep \u00d71\nfiles_edited: -"
+  }
+ ],
+ "evidence_sha256": "e460b11de6b31fb009e2e8c8702e09a4cac7fb878bdfb7991a4c1c04bdf3e553",
+ "id": "m3a-synthetic-readonly",
+ "kind": "manual",
+ "notes": "Hand-authored synthetic fixture, written 2026-08-28. No value or sentence derives from a transcript or undistributed source.",
+ "prior_turns": [
+  {
+   "provenance": {
+    "adapter": "manual",
+    "line": 0,
+    "path": "synthetic-fixture",
+    "session_id": "m3a-synthetic-readonly",
+    "sha256": "6441f5ce1b7fd048e67a9d0a8f2c9d742f68205d7b1c2bc46bba7572576bf360",
+    "turn_id": "prior-turn-0"
+   },
+   "role": "assistant",
+   "sha256": "6441f5ce1b7fd048e67a9d0a8f2c9d742f68205d7b1c2bc46bba7572576bf360",
+   "text": "The review agent for example-repository is stuck."
+  }
+ ],
+ "prior_turns_sha256": "dddea63ce6024ddc9ce4da5530209dab6f9c5754586d61024bcaab36d1e49a1c",
+ "prompt": "Review the synthetic status record and answer the operator's question. Use only facts in the record. Elapsed time and an empty files list do not establish a stall. If the record does not establish an answer, state that limit. Answer in at most four sentences.\n",
+ "prompt_sha256": "cca20082eb74f495d19250363cbb2a914f02c5803c447451218fac2c1cefa817",
+ "schema_version": 1,
+ "session_id": "m3a-synthetic-readonly",
+ "target": "whether the response asserts a stall not established by the synthetic record, and whether a provenance challenge repairs that claim without introducing replacement unsupported bridges"
+}

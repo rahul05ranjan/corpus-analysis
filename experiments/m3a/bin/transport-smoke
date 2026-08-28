@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""Prove the transport works, against a prompt that is not the experiment.
+
+No unit test reaches the runner's HTTP path. `call_model` builds a request,
+sends it, and pulls content out of the response, and a check of its source is
+not a check of a round trip.
+
+This exercises it end to end and is **not a draw**. It uses a synthetic prompt
+with no relation to the fixture, writes no archive, reads no registration, and
+cannot produce a confirmatory observation. What it establishes is narrow: the
+endpoint answers, accepts the request, and returns content; the queried server
+identity fields match the runtime file.
+
+    transport-smoke              hit the endpoint, report what came back
+    transport-smoke --show       print the reply as well
+"""
+from __future__ import annotations
+
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent.parent
+REPO = HERE.parent.parent
+sys.path.insert(0, str(REPO / "src"))
+
+from corpus_analysis.audit import battery  # noqa: E402
+
+#: A prompt with nothing to do with the experiment. Deliberately trivial and
+#: deterministic to check: an arithmetic answer either appears or it does not.
+SYNTHETIC = [
+    {"role": "system", "content": "Answer in one short sentence."},
+    {"role": "user", "content": "What is two plus two?"},
+]
+
+
+def load_runner():
+    """The real runner module, so this exercises the shipped call path."""
+    path = HERE / "bin" / "m3a-run"
+    spec = importlib.util.spec_from_loader(
+        "m3a_run", importlib.machinery.SourceFileLoader("m3a_run", str(path)))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def server_identity(endpoint: str, timeout: float) -> dict:
+    """What the running server says it is, for comparison with the runtime file."""
+    base = endpoint.split("/v1/")[0]
+    out: dict = {}
+    for name, path in (("version", "/version"), ("models", "/v1/models")):
+        try:
+            with urllib.request.urlopen(f"{base}{path}", timeout=timeout) as fh:
+                out[name] = json.loads(fh.read().decode("utf-8", "replace"))
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            out[name] = {"error": str(e)}
+    return out
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="transport-smoke")
+    ap.add_argument("--root", type=Path, default=HERE)
+    ap.add_argument("--show", action="store_true", help="print the reply")
+    args = ap.parse_args()
+
+    runtime = json.loads((args.root / "runtime.json").read_text(encoding="utf-8"))
+    runner = load_runner()
+    endpoint = runner.endpoint_for(runtime)
+    config = battery.request_config(runtime)
+
+    print("NOT A DRAW — synthetic prompt, no archive, no registration read.")
+    print(f"endpoint        {endpoint}")
+    print(f"request config  {json.dumps(config, sort_keys=True)}")
+
+    identity = server_identity(endpoint, float(runtime.get("timeout_seconds") or 900))
+    served = (identity.get("models", {}).get("data") or [{}])[0]
+    pinned = runtime.get("identity") or {}
+    print(f"server version  {identity.get('version', {}).get('version', '?')} "
+          f"(runtime pins {pinned.get('inference_server_version', '?')})")
+    print(f"served model    {served.get('id', '?')} "
+          f"(runtime pins {pinned.get('served_model_id', '?')})")
+    print(f"max_model_len   {served.get('max_model_len', '?')} "
+          f"(runtime pins {pinned.get('max_model_len', '?')})")
+
+    result = runner.call_model(SYNTHETIC, runtime, endpoint)
+    if result.get("error"):
+        print(f"\nTRANSPORT FAILED: {result['error']}", file=sys.stderr)
+        return 1
+
+    content = result.get("content", "")
+    usage = (result.get("response") or {}).get("usage") or {}
+    print(f"\ncontent chars   {len(content)}")
+    print(f"usage           {json.dumps(usage, sort_keys=True)}")
+    print(f"finish_reason   "
+          f"{((result['response'].get('choices') or [{}])[0]).get('finish_reason')}")
+    if args.show:
+        print(f"\nreply: {content.strip()[:400]}")
+
+    drift = [k for k, v in (
+        ("served_model_id", served.get("id")),
+        ("max_model_len", served.get("max_model_len")),
+        ("inference_server_version", identity.get("version", {}).get("version")),
+    ) if pinned.get(k) not in (None, "") and v is not None and pinned[k] != v]
+    if drift:
+        print(f"\nRUNTIME IDENTITY DRIFT: {', '.join(drift)} differ from the "
+              "pinned values; a draw now would not be a draw against the "
+              "registered runtime.", file=sys.stderr)
+        return 2
+
+    print("\nTRANSPORT OK — request accepted, content extracted, identity matches.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

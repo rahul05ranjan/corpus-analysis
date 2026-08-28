@@ -1,0 +1,35 @@
+name: Proposal
+description: Propose a measurement, a signal, or a change of direction
+labels: [proposal]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One paragraph.
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: What observation establishes this?
+      description: >-
+        Name the records the claim rests on. A proposal for a new signal should
+        say what in a transcript makes it computable.
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: Epistemic status
+      options:
+        - OBSERVED (measured, with the measurement stated)
+        - DERIVED (follows from observations under a stated rule)
+        - HYPOTHESIS (worth testing, not established)
+        - DESIGN CHOICE (a preference, argued)
+    validations:
+      required: true
+  - type: textarea
+    id: falsify
+    attributes:
+      label: What would show this is wrong?

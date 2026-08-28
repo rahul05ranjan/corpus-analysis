@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+    # `labeled` is here so the `full-test` gate below actually fires. The
+    # default types are opened/synchronize/reopened, so adding the label
+    # would trigger nothing and the matrix would stay skipped.
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+
+# PR runs only; a push to main must not cancel the run that gates it.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Fast-feedback gate. Runs on every push and PR.
+  # Stdlib-only with no lockfile, so there is nothing to install and nothing
+  # to cache. Floor and ceiling of the supported range: 3.10 is the oldest
+  # CPython still receiving security fixes, 3.14 is what development runs on.
+  # ─────────────────────────────────────────────────────────────────────────
+  validate:
+    name: Validate (${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.14"]
+
+    steps:
+      - name: Checkout
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python
+        # actions/setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Show interpreter
+        run: python -VV
+
+      # The suite holds two contracts: determinism (scan twice, compare bytes)
+      # and the report label gate.
+      - name: Compile + tests
+        run: make check PYTHON=python
+
+      # The determinism gate again, over the fixture corpus and through the
+      # checkout CLI. Installed entry points are tested separately below.
+      - name: Determinism over the fixture corpus
+        run: make determinism PYTHON=python ROOT=tests/fixtures/corpus
+
+      - name: Build wheel
+        run: python -m pip wheel . --no-deps --wheel-dir dist
+
+      - name: Clean wheel install
+        run: python -m pip install --force-reinstall dist/corpus_analysis-*.whl
+
+      - name: Installed console-script smoke test
+        run: |
+          cd "$RUNNER_TEMP"
+          corpus-scan --help
+          corpus-audit --help
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Lint. Separate job so a style failure does not mask a real test failure.
+  # ─────────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python
+        # actions/setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.14"
+
+      - name: Install ruff
+        run: python -m pip install ruff
+
+      - name: Ruff
+        run: ruff check .
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Cross-platform, full-scope checks.
+  # Triggers:
+  #   - PR carrying the `full-test` label
+  #   - manual `workflow_dispatch`
+  #   - any push to `main`
+  # Bytes are the portable part worth testing. Provenance records a source path
+  # and a byte offset, and every claim is a digest over exact bytes, so line
+  # endings must not be translated on checkout — see `.gitattributes`.
+  # ─────────────────────────────────────────────────────────────────────────
+  full-scope:
+    name: Full-scope (${{ matrix.label }})
+    needs: validate
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'full-test')) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux/arm64
+            os: ubuntu-24.04-arm
+          - label: macos/arm64
+            os: macos-14
+          - label: windows/amd64
+            os: windows-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        # actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python
+        # actions/setup-python v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.14"
+
+      # Invoked directly rather than through make: the Makefile assumes POSIX
+      # tooling, and the point of this leg is that the Python is portable.
+      - name: Tests
+        run: python -m unittest discover -s tests -v
+        env:
+          PYTHONPATH: src

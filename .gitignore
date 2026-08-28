@@ -1,0 +1,50 @@
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.eggs/
+.ruff_cache/
+.pytest_cache/
+
+# Scan output. Corpus records carry whatever was pasted into a session;
+# nothing produced by a run belongs in version control.
+out/
+*.ndjson
+*.jsonl
+!tests/fixtures/**/*.jsonl
+
+# Frozen fixtures and audit results. A fixture holds source bytes from whatever
+# corpus it was built against, so one belongs in version control only after a
+# deliberate redaction pass.
+fixtures/
+*.fixture.json
+
+# Generated endpoint and labelling artifacts never enter the release tree.
+experiments/m3a/pilot-private/
+experiments/m3a/raw/
+experiments/m3a/label-capture/runs/
+experiments/m3a/label-capture/labels-private/
+
+# `fixtures/` above matches any directory of that name. Git does not descend
+# into an excluded directory, so re-including the synthetic test corpora takes
+# a rule on the directory itself rather than on its contents. They are
+# hand-authored and meant to be reviewable in a diff.
+!tests/fixtures/
+
+_private

@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""Score archived draws against a labels file, and report the registered figures.
+
+Labels are applied by a non-subject reader and live in their own file. This
+script never edits an archive, never invents a label, and computes only the
+quantities that are decidable from what a label already states: N_k from the
+quoted bridge list, convergence from N_k, and the registered rates from those.
+
+It refuses before it counts. Every quoted span must appear verbatim in the
+archived response it claims to come from, every label must have an archived
+draw behind it, every valid archived draw must be labelled, and the archive
+must carry the digest of the registration being scored. A confirmatory scorer
+that skips those checks reports the labeller's memory rather than the run.
+
+Validity is derived from the execution record, never supplied by the labeller:
+a reader who can mark a draw invalid after seeing it controls the denominator.
+
+    m3a-score --labels labels.json      ground, score, and decide
+    m3a-score --template                a labels skeleton for the valid archive
+
+Exit status: 0 when the registered criterion decided (SIGNAL or NO_SIGNAL),
+2 when the labels were refused, 3 when the battery is INCOMPLETE.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent.parent
+REPO = HERE.parent.parent
+sys.path.insert(0, str(REPO / "src"))
+
+from corpus_analysis.audit import battery, fixtures, registration  # noqa: E402
+from corpus_analysis.records import dumps  # noqa: E402
+
+
+def archived(raw_dir: Path) -> list[dict]:
+    out = []
+    for path in sorted(raw_dir.glob("*.json")):
+        out.append(json.loads(path.read_text(encoding="utf-8")))
+    return out
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="m3a-score")
+    ap.add_argument("--root", type=Path, default=HERE)
+    ap.add_argument("--archive", type=Path, default=None)
+    ap.add_argument("--labels", type=Path, default=None)
+    ap.add_argument("--template", action="store_true",
+                    help="emit a labels skeleton for every archived draw")
+    args = ap.parse_args()
+
+    raw_dir = args.archive or (args.root / "raw")
+    reg = registration.load(args.root / "registration.json")
+    records = archived(raw_dir) if raw_dir.is_dir() else []
+
+    if args.template:
+        #: No `invalid_reason` field. Validity is derived from the execution
+        #: record, and a labeller who can write it can drop a draw from the
+        #: denominator after reading what it said. Invalid draws are skipped
+        #: here rather than offered for labelling.
+        skeleton = [
+            {"draw_id": r["draw_id"], "k": r["k"],
+             "target_ref": ("the frozen unsupported claim" if r["k"] == 1
+                            else "new_bridges[0] of the previous round"),
+             "target_quote": "", "outcome": "", "target_repaired": False,
+             "bridges_present": [], "new_bridges": [],
+             "labeller": reg.labeller_id}
+            for r in records if not battery.derive_invalid_reason(r)
+        ]
+        print(json.dumps(skeleton, indent=1))
+        return 0
+
+    if not args.labels:
+        print(f"archived draws: {len(records)} under {raw_dir}")
+        print("no --labels given; nothing to score")
+        return 0
+
+    raw_labels = json.loads(args.labels.read_text(encoding="utf-8"))
+    fx = fixtures.load(args.root / "fixture.json")
+    runtime = json.loads((args.root / "runtime.json").read_text(encoding="utf-8"))
+    reg_digest = battery.registration_file_sha256(args.root / "registration.json")
+
+    #: An archive may carry the digest of a registration this one supersedes,
+    #: but only once the earlier one has been loaded and shown to differ in
+    #: nothing that determined its draws.
+    accepted, supersede_problems = battery.accepted_registration_digests(reg, REPO)
+    if supersede_problems:
+        print("REFUSED — the superseded registration does not hold:", file=sys.stderr)
+        for p in supersede_problems:
+            print(f"  - {p}", file=sys.stderr)
+        return 2
+
+    #: Grounding runs before anything is counted; an ungrounded rate will
+    #: score a draw that was never taken.
+    refusals = battery.ground(records, raw_labels, reg, fx, reg_digest, runtime,
+                              accepted)
+    if refusals:
+        print(f"REFUSED — {len(refusals)} label(s) do not ground to the archive:",
+              file=sys.stderr)
+        for r in refusals:
+            print(f"  - {r}", file=sys.stderr)
+        print("\nNothing was scored.", file=sys.stderr)
+        return 2
+
+    scores = battery.apply_archive_validity(
+        [battery.score_from_dict(d) for d in raw_labels], records)
+    result = battery.verdict(scores, reg)
+    primary = str((reg.signal or {}).get("metric") or "")
+
+    report = {
+        "registration": {
+            "fixture_id": reg.fixture_id,
+            "instrument_commit": reg.instrument_commit,
+            "payload_sha256": reg.payload_sha256,
+            "registration_sha256": reg_digest,
+            "status": reg.status,
+            "draws_registered": reg.draws,
+            "labeller_id": reg.labeller_id,
+        },
+        "observed": {
+            "archived_draws": len(records),
+            "scored_rounds": len(scores),
+            "valid_draws": len(battery.valid_draws(scores)),
+        },
+        "first_round_partition": battery.first_round_partition(scores),
+        #: Whichever statistic `signal.metric` names is the primary one. Naming
+        #: it here as well would be a second place to change the experiment, and
+        #: the two would disagree the first time an operator changed one.
+        "registered_primary": {
+            "name": primary,
+            **(battery.METRICS[primary](scores) if primary in battery.METRICS
+               else {"error": f"signal.metric {primary!r} is not a statistic"}),
+        },
+        "registered_secondary": {
+            name: fn(scores) for name, fn in sorted(battery.METRICS.items())
+            if name != primary
+        } | {
+            "convergence_depth": battery.convergence_depth(scores),
+            "chain_completeness": battery.chain_completeness(scores),
+        },
+        "fixture_premise_contested": battery.fixture_premise_contested(scores),
+        "criterion": {
+            "signal": reg.signal_criterion,
+            "no_signal": reg.no_signal_criterion,
+        },
+        "result": result,
+    }
+    print(dumps(report))
+    if result["result"] == "FIXTURE_CONTESTED":
+        print("\nFIXTURE_CONTESTED — " + result["reason"], file=sys.stderr)
+        return 4
+    return 0 if result["result"] in ("SIGNAL", "NO_SIGNAL") else 3
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

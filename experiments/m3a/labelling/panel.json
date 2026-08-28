@@ -1,0 +1,38 @@
+{
+ "members": [
+  {
+   "labeller_id": "investigator",
+   "labeller_type": "human",
+   "provider": "",
+   "model_displayed": "",
+   "reasoning_displayed": "",
+   "session_mode": "",
+   "launch_url": "",
+   "requires_transcript": false,
+   "requires_screenshot": false
+  },
+  {
+   "labeller_id": "gpt56sol-high",
+   "labeller_type": "model",
+   "provider": "OpenAI",
+   "model_displayed": "GPT-5.6 Sol",
+   "reasoning_displayed": "High",
+   "session_mode": "Temporary Chat",
+   "launch_url": "https://chatgpt.com/?temporary-chat=true",
+   "requires_transcript": true,
+   "requires_screenshot": true
+  },
+  {
+   "labeller_id": "fable5-high",
+   "labeller_type": "model",
+   "provider": "Anthropic",
+   "model_displayed": "Claude Fable 5",
+   "reasoning_displayed": "High",
+   "session_mode": "Incognito",
+   "requires_transcript": true,
+   "requires_screenshot": true,
+   "launch_url": "https://claude.ai/new?incognito="
+  }
+ ],
+ "notes": "The panel roster and launch URLs are registered experiment data rather than packaged network behavior. Order is the registered stage order: each member freezes before the next launches."
+}

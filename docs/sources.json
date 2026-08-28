@@ -1,0 +1,130 @@
+{
+  "snapshot": "2026-08-11",
+  "sources": [
+    {
+      "title": "ProvenanceGuard: Source-Aware Factuality Verification for MCP-Based LLM Agents",
+      "id": "2606.18037",
+      "url": "https://arxiv.org/abs/2606.18037"
+    },
+    {
+      "title": "Safeguarding LLM Agents from Misalignment through Provenance Analysis",
+      "id": "2607.01236",
+      "url": "https://arxiv.org/abs/2607.01236"
+    },
+    {
+      "title": "CyberCorrect: A Cybernetic Framework for Closed-Loop Self-Correction in Large Language Models",
+      "id": "2605.17305",
+      "url": "https://arxiv.org/abs/2605.17305"
+    },
+    {
+      "title": "The Self-Correction Illusion: LLMs Correct Others but Not Themselves",
+      "id": "2606.05976",
+      "url": "https://arxiv.org/abs/2606.05976"
+    },
+    {
+      "title": "SURE-RAG: Sufficiency and Uncertainty-Aware Evidence Verification for Selective Retrieval-Augmented Generation",
+      "id": "2605.03534",
+      "url": "https://arxiv.org/abs/2605.03534"
+    },
+    {
+      "title": "Evidence-Ledger Adjudication for Claim-Evidence Traceability",
+      "id": "2607.26512",
+      "url": "https://arxiv.org/abs/2607.26512"
+    },
+    {
+      "title": "PaperTrail: A Claim-Evidence Interface for Grounding Provenance in LLM-based Scholarly Q&A",
+      "id": "2602.21045",
+      "url": "https://arxiv.org/abs/2602.21045"
+    },
+    {
+      "title": "Real-Time Detection and Repair of LLM Agent Failures",
+      "id": "2608.02464",
+      "url": "https://arxiv.org/abs/2608.02464"
+    },
+    {
+      "title": "TRAJDEBUG: Tracing Error Lifecycle to Identify Critical Failures in Long-Horizon Agent Trajectories",
+      "id": "2608.06346",
+      "url": "https://arxiv.org/abs/2608.06346"
+    },
+    {
+      "title": "AgentRx: Diagnosing AI Agent Failures from Execution Trajectories",
+      "id": "2602.02475",
+      "url": "https://arxiv.org/abs/2602.02475"
+    },
+    {
+      "title": "TRAIL: Trace Reasoning and Agentic Issue Localization",
+      "id": "2505.08638",
+      "url": "https://arxiv.org/abs/2505.08638"
+    },
+    {
+      "title": "From Failed Trajectories to Reliable LLM Agents: Diagnosing and Repairing Harness Flaws",
+      "id": "2606.06324",
+      "url": "https://arxiv.org/abs/2606.06324"
+    },
+    {
+      "title": "BenchTrace: A Benchmark for Testing Reflection Ability and Controlled Evolution in LLM Agents",
+      "id": "2605.29225",
+      "url": "https://arxiv.org/abs/2605.29225"
+    },
+    {
+      "title": "Causal Agent Replay: Counterfactual Attribution for LLM-Agent Failures",
+      "id": "2606.08275",
+      "url": "https://arxiv.org/abs/2606.08275"
+    },
+    {
+      "title": "PROV-AGENT: Unified Provenance for Tracking AI Agent Interactions in Agentic Workflows",
+      "id": "2508.02866",
+      "url": "https://arxiv.org/abs/2508.02866"
+    },
+    {
+      "title": "MonitrLLM: A Community-Centered Evaluation Infrastructure for Large Language Models",
+      "id": "2608.02409",
+      "url": "https://arxiv.org/abs/2608.02409"
+    },
+    {
+      "title": "Guarded Repair for Harm-Aware Post-hoc Replacement of LLM Mathematical Reasoning",
+      "id": "2605.24613",
+      "url": "https://arxiv.org/abs/2605.24613"
+    },
+    {
+      "title": "From Agent Traces to Trust: Evidence Tracing and Execution Provenance in LLM Agents",
+      "id": "2606.04990",
+      "url": "https://arxiv.org/abs/2606.04990"
+    },
+    {
+      "title": "Measuring Attribution in Natural Language Generation Models",
+      "id": "ACL 2023.cl-4.2",
+      "url": "https://aclanthology.org/2023.cl-4.2/"
+    },
+    {
+      "title": "RARR: Researching and Revising What Language Models Say, Using Language Models",
+      "id": "2210.08726",
+      "url": "https://arxiv.org/abs/2210.08726"
+    },
+    {
+      "title": "FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation",
+      "id": "2305.14251",
+      "url": "https://arxiv.org/abs/2305.14251"
+    },
+    {
+      "title": "Chain-of-Verification Reduces Hallucination in Large Language Models",
+      "id": "2309.11495",
+      "url": "https://arxiv.org/abs/2309.11495"
+    },
+    {
+      "title": "MiniCheck: Efficient Fact-Checking of LLMs on Grounding Documents",
+      "id": "2404.10774",
+      "url": "https://arxiv.org/abs/2404.10774"
+    },
+    {
+      "title": "VERISCORE: Evaluating the factuality of verifiable claims in long-form text generation",
+      "id": "2406.19276",
+      "url": "https://arxiv.org/abs/2406.19276"
+    },
+    {
+      "title": "When Can LLMs Actually Correct Their Own Mistakes? A Critical Survey of Self-Correction of LLMs",
+      "id": "2406.01297",
+      "url": "https://arxiv.org/abs/2406.01297"
+    }
+  ]
+}

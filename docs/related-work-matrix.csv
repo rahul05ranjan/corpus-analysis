@@ -1,0 +1,27 @@
+work,year,identifier,naturalistic_traces,provenance,evidence_sufficiency,iterative_repair,repair_dynamics,new_unsupported_edge_metric,freeze_or_replay,prospective_or_heldout,existing_local_corpus,collision,note
+ProvenanceGuard — factuality,2026,2606.18037,E,E,E,E,P,—,P,E,—,Very close,Source-aware factuality on captured MCP traces; repair/reverify
+ProvenanceGuard — alignment,2026,2607.01236,E,E,E,P,—,—,—,E,—,Very close on provenance-as-support,Proposed tool call supported by traceable context
+SURE-RAG,2026,2605.03534,—,E,E,—,—,—,P,E,—,Very close on sufficiency,Explicit set-level evidence sufficiency
+Evidence-Ledger Adjudication,2026,2607.26512,P,E,E,P,—,—,—,E,—,Very close on claim/evidence routing,Routes unsupported/mixed/contradicted claims
+PaperTrail,2026,2602.21045,P,E,E,—,—,—,—,E,—,Close,Claim/evidence provenance interface
+CyberCorrect,2026,2605.17305,—,—,P,E,E,P,—,E,—,Very close on correction dynamics,Convergence / overshoot / oscillation
+The Self-Correction Illusion,2026,2606.05976,—,—,P,E,E,P,E,E,—,Very close methodologically,SHA-256 byte-identical role intervention
+Guarded Repair,2026,2605.24613,—,P,P,E,E,P,P,E,—,Close on repair harm,Selective repair; protect already-correct traces
+Real-Time Detection and Repair,2026,2608.02464,E,P,P,E,P,—,P,E,—,Close,Telemetry + deterministic verification + rollback
+TrajDebug,2026,2608.06346,E,E,P,P,E,—,—,E,—,Close,Error lifecycle and resolution status
+AgentRx,2026,2602.02475,E,E,P,—,—,—,—,E,—,Close,Evidence-backed critical-step localization
+TRAIL,2025,2505.08638,E,P,P,—,—,—,—,E,—,Close,Trace-debugging taxonomy and benchmark
+HarnessFix,2026,2606.06324,E,E,P,E,P,—,P,E,—,Close,Trace IR + provenance + harness repair
+BenchTrace,2026,2605.29225,E,P,P,E,E,—,P,E,—,Close,Failures/reflections to controlled evolution eval
+Causal Agent Replay,2026,2606.08275,P,E,P,E,E,—,E,E,—,Close on replay,Counterfactual step interventions
+PROV-AGENT,2025,2508.02866,E,E,—,—,—,—,—,E,—,Infrastructure-adjacent,Agent-centric provenance model
+MonitrLLM,2026,2608.02409,E,P,—,—,—,—,—,P,P,Close on naturalistic corpus,Full transcripts + user task outcomes
+AIS,2023,ACL 2023.cl-4.2,—,E,E,—,—,—,—,E,—,Foundational,Attributable to Identified Sources
+RARR,2022,2210.08726,—,E,E,E,P,—,—,E,—,Foundational,Find evidence and revise unsupported text
+FActScore,2023,2305.14251,—,P,E,—,—,—,—,E,—,Foundational,Atomic fact support
+Chain-of-Verification,2023,2309.11495,—,P,P,E,P,—,—,E,—,Foundational,Verification questions and revised answer
+MiniCheck,2024,2404.10774,—,P,E,—,—,—,—,E,—,Foundational,Compact grounding checker
+VeriScore,2024,2406.19276,—,P,E,—,—,—,—,E,—,Foundational,Verifiable-claim factuality
+Phoenix,tooling,official docs,E,P,P,P,—,—,E,E,P,Product/infra overlap,Trace → dataset → experiment; span replay
+Langfuse,tooling,official docs,E,P,P,P,—,—,P,E,P,Product/infra overlap,Trace/dataset/experiment infrastructure
+claude-code-transcripts,tooling,GitHub,E,P,—,—,—,—,P,—,E,Input-layer overlap,Reads ~/.claude/projects JSONL

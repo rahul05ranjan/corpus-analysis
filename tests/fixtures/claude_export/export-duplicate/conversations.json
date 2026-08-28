@@ -1,0 +1,182 @@
+[
+  {
+    "uuid": "conv-0001",
+    "name": "synthetic linear thread",
+    "summary": "",
+    "created_at": "2026-01-01T00:00:00.000000Z",
+    "updated_at": "2026-01-01T00:10:00.000000Z",
+    "account": {
+      "uuid": "account-0001"
+    },
+    "chat_messages": [
+      {
+        "uuid": "msg-0001-a",
+        "parent_message_uuid": "msg-outside-0000",
+        "sender": "human",
+        "created_at": "2026-01-01T00:00:01.000000Z",
+        "updated_at": "2026-01-01T00:00:01.000000Z",
+        "text": "port the parser",
+        "content": [
+          {
+            "type": "text",
+            "text": "port the parser",
+            "citations": []
+          }
+        ],
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "msg-0001-b",
+        "parent_message_uuid": "msg-0001-a",
+        "sender": "assistant",
+        "created_at": "2026-01-01T00:00:02.000000Z",
+        "updated_at": "2026-01-01T00:00:02.000000Z",
+        "text": "FLATTENED RENDERING THAT MUST NOT BECOME CANONICAL TEXT",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "readable reasoning",
+            "summaries": [
+              {
+                "summary": "a summary that must not be counted twice"
+              }
+            ],
+            "signature": "0123456789abcdef",
+            "hidden": false,
+            "thinking_hidden": false,
+            "cut_off": false,
+            "truncated": false
+          },
+          {
+            "type": "text",
+            "text": "ported",
+            "citations": []
+          }
+        ],
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "msg-0001-c",
+        "parent_message_uuid": "msg-0001-b",
+        "sender": "human",
+        "created_at": "2026-01-01T00:00:03.000000Z",
+        "updated_at": "2026-01-01T00:00:03.000000Z",
+        "text": "that dropped the branch handling",
+        "content": [
+          {
+            "type": "text",
+            "text": "that dropped the branch handling",
+            "citations": []
+          }
+        ],
+        "attachments": [],
+        "files": []
+      },
+      {
+        "uuid": "msg-0001-d",
+        "parent_message_uuid": "msg-0001-c",
+        "sender": "assistant",
+        "created_at": "2026-01-01T00:00:04.000000Z",
+        "updated_at": "2026-01-01T00:00:04.000000Z",
+        "text": "flattened",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "",
+            "summaries": [],
+            "signature": "fedcba9876543210",
+            "hidden": false,
+            "thinking_hidden": true,
+            "cut_off": false,
+            "truncated": false
+          },
+          {
+            "type": "text",
+            "text": "fixed it",
+            "citations": []
+          },
+          {
+            "type": "tool_use",
+            "name": "create_file",
+            "id": "toolu-0001",
+            "input": {
+              "path": "/synthetic/proj/parse.py",
+              "file_text": "x = 1"
+            },
+            "tool_identifier": "create_file",
+            "hidden_in_chat": false
+          },
+          {
+            "type": "tool_result",
+            "name": "create_file",
+            "tool_use_id": "toolu-0001",
+            "is_error": false,
+            "content": [
+              {
+                "type": "text",
+                "text": "written"
+              }
+            ],
+            "hidden_in_chat": false
+          },
+          {
+            "type": "tool_use",
+            "name": "bash_tool",
+            "id": "toolu-0002",
+            "input": {
+              "command": "git checkout -- parse.py"
+            },
+            "tool_identifier": "bash_tool",
+            "hidden_in_chat": false
+          },
+          {
+            "type": "tool_result",
+            "name": "bash_tool",
+            "tool_use_id": "toolu-0002",
+            "is_error": true,
+            "content": [
+              {
+                "type": "text",
+                "text": "failed"
+              }
+            ],
+            "hidden_in_chat": false
+          }
+        ],
+        "attachments": [],
+        "files": []
+      }
+    ]
+  },
+  {
+    "uuid": "conv-0007",
+    "name": "synthetic conflict subject",
+    "summary": "",
+    "created_at": "2026-01-07T00:00:00.000000Z",
+    "updated_at": "2026-01-07T00:10:00.000000Z",
+    "account": {
+      "uuid": "account-0001"
+    },
+    "chat_messages": [
+      {
+        "uuid": "msg-0007-a",
+        "parent_message_uuid": "msg-outside-0000",
+        "sender": "human",
+        "created_at": "2026-01-07T00:00:01.000000Z",
+        "updated_at": "2026-01-07T00:00:01.000000Z",
+        "text": "a second export records a different version of this conversation",
+        "content": [
+          {
+            "type": "text",
+            "text": "a second export records a different version of this conversation",
+            "citations": []
+          }
+        ],
+        "attachments": [],
+        "files": []
+      }
+    ]
+  }
+]

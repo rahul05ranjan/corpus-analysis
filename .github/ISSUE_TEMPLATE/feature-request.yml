@@ -1,0 +1,27 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      description: >-
+        The scan layer is deterministic and model-free. Anything needing a
+        model, a rule, or a human judgment belongs to the audit layer.
+      options:
+        - scan (deterministic measurement)
+        - audit (interpretation over scan output)
+        - adapter (a new transcript format)
+        - unsure

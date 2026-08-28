@@ -1,0 +1,40 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: >-
+        The command you ran and the adapter it used. Do not paste transcript
+        content: it is your corpus, and an issue is public.
+  - type: dropdown
+    id: adapter
+    attributes:
+      label: Adapter
+      options:
+        - chatgpt
+        - claude
+        - claude_export
+        - codex
+        - copilot_cli
+        - cursor
+        - opencode
+        - vscode_chat
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Which release or commit?

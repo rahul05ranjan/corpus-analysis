@@ -1,0 +1,5 @@
+{"id":"evt-001","parentId":null,"timestamp":"2026-01-01T00:00:00Z","type":"session.start","data":{"sessionId":"session-001"}}
+{"id":"evt-002","parentId":"evt-001","timestamp":"2026-01-01T00:00:01Z","type":"user.message","data":{"content":"inspect the synthetic fixture"}}
+{"id":"evt-003","parentId":"evt-002","timestamp":"2026-01-01T00:00:02Z","type":"assistant.message","data":{"content":"I will inspect it.","outputTokens":4}}
+{"id":"evt-004","parentId":"evt-003","timestamp":"2026-01-01T00:00:03Z","type":"tool.execution_start","data":{"toolName":"read_file"}}
+{"id":"evt-005","parentId":"evt-004","timestamp":"2026-01-01T00:00:04Z","type":"tool.execution_complete","data":{"success":true}}

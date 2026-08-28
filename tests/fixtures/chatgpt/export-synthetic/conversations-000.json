@@ -1,0 +1,413 @@
+[
+  {
+    "conversation_id": "conv-0001",
+    "id": "conv-0001",
+    "create_time": 1767225600.0,
+    "current_node": "node-0001-e",
+    "default_model_slug": "model-x-2",
+    "mapping": {
+      "node-0001-root": {
+        "id": "node-0001-root",
+        "parent": null,
+        "children": ["node-0001-a"],
+        "message": null
+      },
+      "node-0001-a": {
+        "id": "node-0001-a",
+        "parent": "node-0001-root",
+        "children": ["node-0001-b"],
+        "message": {
+          "id": "msg-0001-a",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767225601.0,
+          "content": {"content_type": "text", "parts": ["port the parser"]},
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0001-b": {
+        "id": "node-0001-b",
+        "parent": "node-0001-a",
+        "children": ["node-0001-c"],
+        "message": {
+          "id": "msg-0001-b",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767225602.0,
+          "content": {"content_type": "text", "parts": ["ported"]},
+          "metadata": {"model_slug": "model-x-1", "finish_details": {"type": "stop"}},
+          "recipient": "all"
+        }
+      },
+      "node-0001-c": {
+        "id": "node-0001-c",
+        "parent": "node-0001-b",
+        "children": ["node-0001-d", "node-0001-e"],
+        "message": {
+          "id": "msg-0001-c",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767225603.0,
+          "content": {"content_type": "text", "parts": ["that dropped the branch handling"]},
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0001-d": {
+        "id": "node-0001-d",
+        "parent": "node-0001-c",
+        "children": [],
+        "message": {
+          "id": "msg-0001-d",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767225604.0,
+          "content": {"content_type": "text", "parts": ["abandoned answer on an alternate branch"]},
+          "metadata": {"model_slug": "model-x-1", "finish_details": {"type": "stop"}},
+          "recipient": "all"
+        }
+      },
+      "node-0001-e": {
+        "id": "node-0001-e",
+        "parent": "node-0001-c",
+        "children": [],
+        "message": {
+          "id": "msg-0001-e",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767225605.0,
+          "content": {"content_type": "text", "parts": ["regenerated answer"]},
+          "metadata": {
+            "model_slug": "model-x-2",
+            "message_type": "variant",
+            "finish_details": {"type": "stop"}
+          },
+          "recipient": "all"
+        }
+      }
+    }
+  },
+  {
+    "conversation_id": "conv-0002",
+    "id": "conv-0002",
+    "create_time": 1767312000.0,
+    "current_node": "node-0002-e",
+    "mapping": {
+      "node-0002-root": {
+        "id": "node-0002-root",
+        "parent": null,
+        "children": ["node-0002-a"],
+        "message": null
+      },
+      "node-0002-a": {
+        "id": "node-0002-a",
+        "parent": "node-0002-root",
+        "children": ["node-0002-b"],
+        "message": {
+          "id": "msg-0002-a",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767312001.0,
+          "content": {
+            "content_type": "multimodal_text",
+            "parts": [
+              {
+                "content_type": "image_asset_pointer",
+                "asset_pointer": "synthetic-asset-1",
+                "width": 4,
+                "height": 4,
+                "size_bytes": 64
+              },
+              "read the diagram"
+            ]
+          },
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0002-b": {
+        "id": "node-0002-b",
+        "parent": "node-0002-a",
+        "children": ["node-0002-c"],
+        "message": {
+          "id": "msg-0002-b",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767312002.0,
+          "content": {"content_type": "text", "parts": ["no model identity is recorded on this one"]},
+          "metadata": {"finish_details": {"type": "stop"}},
+          "recipient": "all"
+        }
+      },
+      "node-0002-c": {
+        "id": "node-0002-c",
+        "parent": "node-0002-b",
+        "children": ["node-0002-d"],
+        "message": {
+          "id": "msg-0002-c",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767312003.0,
+          "content": {
+            "content_type": "multimodal_text",
+            "parts": [
+              {
+                "content_type": "image_asset_pointer",
+                "asset_pointer": "synthetic-asset-2",
+                "width": 4,
+                "height": 4,
+                "size_bytes": 64
+              }
+            ]
+          },
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0002-d": {
+        "id": "node-0002-d",
+        "parent": "node-0002-c",
+        "children": ["node-0002-e"],
+        "message": {
+          "id": "msg-0002-d",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767312004.0,
+          "content": {
+            "content_type": "multimodal_text",
+            "parts": [
+              {
+                "content_type": "audio_asset_pointer",
+                "asset_pointer": "synthetic-asset-3",
+                "format": "wav",
+                "size_bytes": 64
+              },
+              {
+                "content_type": "audio_transcription",
+                "decoding_id": "synthetic-decoding-1",
+                "direction": "in",
+                "text": "SPOKEN WORDS THAT MUST NOT REACH A CANONICAL TURN"
+              },
+              {
+                "content_type": "real_time_user_audio_video_asset_pointer",
+                "audio_asset_pointer": {"asset_pointer": "synthetic-asset-4"},
+                "audio_start_timestamp": 0.0
+              },
+              {
+                "content_type": "hologram_asset_pointer",
+                "asset_pointer": "synthetic-asset-5"
+              }
+            ]
+          },
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0002-e": {
+        "id": "node-0002-e",
+        "parent": "node-0002-d",
+        "children": [],
+        "message": {
+          "id": "msg-0002-e",
+          "author": {"role": "tool", "name": "container.exec"},
+          "create_time": 1767312005.0,
+          "content": {"content_type": "system_error", "name": "SyntheticError", "text": "failed"},
+          "metadata": {},
+          "recipient": "all"
+        }
+      }
+    }
+  },
+  {
+    "conversation_id": "conv-0003",
+    "id": "conv-0003",
+    "create_time": 1767398400.0,
+    "mapping": {
+      "node-0003-root": {
+        "id": "node-0003-root",
+        "parent": null,
+        "children": ["node-0003-a"],
+        "message": null
+      },
+      "node-0003-a": {
+        "id": "node-0003-a",
+        "parent": "node-0003-root",
+        "children": ["node-0003-b"],
+        "message": {
+          "id": "msg-0003-a",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767398401.0,
+          "content": {"content_type": "text", "parts": ["no current_node is recorded here"]},
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0003-b": {
+        "id": "node-0003-b",
+        "parent": "node-0003-a",
+        "children": ["node-0003-c"],
+        "message": {
+          "id": "msg-0003-b",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767398402.0,
+          "content": {
+            "content_type": "thoughts",
+            "thoughts": [{"summary": "weighing it", "content": "twelve characters of reasoning"}],
+            "source_analysis_msg_id": "msg-0003-c"
+          },
+          "metadata": {"model_slug": "model-x-2", "thinking_effort": "extended"},
+          "recipient": "all"
+        }
+      },
+      "node-0003-c": {
+        "id": "node-0003-c",
+        "parent": "node-0003-b",
+        "children": [],
+        "message": {
+          "id": "msg-0003-c",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767398403.0,
+          "content": {"content_type": "text", "parts": ["the tree has one leaf"]},
+          "metadata": {"model_slug": "model-x-2", "thinking_effort": "extended"},
+          "recipient": "all"
+        }
+      }
+    }
+  },
+  {
+    "conversation_id": "conv-0004",
+    "id": "conv-0004",
+    "create_time": 1767484800.0,
+    "mapping": {
+      "node-0004-root": {
+        "id": "node-0004-root",
+        "parent": null,
+        "children": ["node-0004-a"],
+        "message": null
+      },
+      "node-0004-a": {
+        "id": "node-0004-a",
+        "parent": "node-0004-root",
+        "children": ["node-0004-b", "node-0004-c"],
+        "message": {
+          "id": "msg-0004-a",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767484801.0,
+          "content": {"content_type": "text", "parts": ["two leaves and no current_node"]},
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0004-b": {
+        "id": "node-0004-b",
+        "parent": "node-0004-a",
+        "children": [],
+        "message": {
+          "id": "msg-0004-b",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767484802.0,
+          "content": {"content_type": "text", "parts": ["one candidate"]},
+          "metadata": {"model_slug": "model-x-1"},
+          "recipient": "all"
+        }
+      },
+      "node-0004-c": {
+        "id": "node-0004-c",
+        "parent": "node-0004-a",
+        "children": [],
+        "message": {
+          "id": "msg-0004-c",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767484803.0,
+          "content": {"content_type": "text", "parts": ["the other candidate"]},
+          "metadata": {"model_slug": "model-x-2"},
+          "recipient": "all"
+        }
+      }
+    }
+  },
+  {
+    "conversation_id": "conv-0005",
+    "id": "conv-0005",
+    "create_time": 1767571200.0,
+    "current_node": "node-0005-f",
+    "mapping": {
+      "node-0005-root": {
+        "id": "node-0005-root",
+        "parent": null,
+        "children": ["node-0005-a"],
+        "message": null
+      },
+      "node-0005-a": {
+        "id": "node-0005-a",
+        "parent": "node-0005-root",
+        "children": ["node-0005-b"],
+        "message": {
+          "id": "msg-0005-a",
+          "author": {"role": "system", "name": null},
+          "create_time": 1767571201.0,
+          "content": {"content_type": "text", "parts": ["harness text on the system channel"]},
+          "metadata": {"is_visually_hidden_from_conversation": true},
+          "recipient": "all"
+        }
+      },
+      "node-0005-b": {
+        "id": "node-0005-b",
+        "parent": "node-0005-a",
+        "children": ["node-0005-c"],
+        "message": {
+          "id": "msg-0005-b",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767571202.0,
+          "content": {"content_type": "user_editable_context", "user_instructions": "standing instructions"},
+          "metadata": {"is_user_system_message": true},
+          "recipient": "all"
+        }
+      },
+      "node-0005-c": {
+        "id": "node-0005-c",
+        "parent": "node-0005-b",
+        "children": ["node-0005-d"],
+        "message": {
+          "id": "msg-0005-c",
+          "author": {"role": "user", "name": null},
+          "create_time": 1767571203.0,
+          "content": {"content_type": "text", "parts": ["count the rows"]},
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0005-d": {
+        "id": "node-0005-d",
+        "parent": "node-0005-c",
+        "children": ["node-0005-e"],
+        "message": {
+          "id": "msg-0005-d",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767571204.0,
+          "content": {"content_type": "code", "language": "python", "text": "len(rows)"},
+          "metadata": {"model_slug": "model-x-2"},
+          "recipient": "python"
+        }
+      },
+      "node-0005-e": {
+        "id": "node-0005-e",
+        "parent": "node-0005-d",
+        "children": ["node-0005-f"],
+        "message": {
+          "id": "msg-0005-e",
+          "author": {"role": "tool", "name": "python"},
+          "create_time": 1767571205.0,
+          "content": {"content_type": "execution_output", "text": "12"},
+          "metadata": {},
+          "recipient": "all"
+        }
+      },
+      "node-0005-f": {
+        "id": "node-0005-f",
+        "parent": "node-0005-e",
+        "children": [],
+        "message": {
+          "id": "msg-0005-f",
+          "author": {"role": "assistant", "name": null},
+          "create_time": 1767571206.0,
+          "content": {"content_type": "hologram_preview", "frames": 3},
+          "metadata": {"model_slug": "model-x-2", "finish_details": {"type": "interrupted"}},
+          "recipient": "all"
+        }
+      }
+    }
+  }
+]

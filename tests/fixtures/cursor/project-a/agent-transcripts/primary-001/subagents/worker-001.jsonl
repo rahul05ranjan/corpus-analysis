@@ -1,0 +1,2 @@
+{"role":"user","message":{"content":[{"type":"text","text":"check the fixture"}]}}
+{"type":"turn_ended","status":"error","error":"synthetic failure"}

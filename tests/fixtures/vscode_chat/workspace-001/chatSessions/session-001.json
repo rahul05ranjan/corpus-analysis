@@ -1,0 +1,1 @@
+{"version":1,"sessionId":"session-001","requests":[{"timestamp":1767225600000,"message":{"text":"inspect the synthetic source"},"response":[{"value":"I will inspect it."},{"kind":"tool"},{"content":{"value":"Inspection complete."}}]}]}

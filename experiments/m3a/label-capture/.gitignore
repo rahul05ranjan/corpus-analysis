@@ -1,0 +1,12 @@
+# Captured labelling evidence is private experimental provenance: structured
+# labels, full session transcripts, screenshots, and the rendered packet, which
+# quotes the archived model response being labelled.
+#
+# The capture script, this file, and the registered prompt template are repo
+# artifacts and are tracked. Nothing a capture run produces is.
+#
+# `runs/` is the script's default root; `labels-private/` is the alternative it
+# honours through M3A_LABEL_ROOT. Both are ignored so a redirected run cannot
+# stage evidence by accident.
+runs/
+labels-private/

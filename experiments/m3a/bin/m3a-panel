@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+"""Render labelling packets, validate structured labels, resolve the panel.
+
+The deterministic half of the labelling protocol. It renders the one packet all
+three labellers read, checks a member's structured label against the archived
+response it claims to describe, and resolves three frozen labels into the one
+label a score is computed from.
+
+It does not launch anything, copy anything, or freeze anything — the capture
+shell does that, because copying operator-supplied evidence and setting files
+read-only are filesystem operations and this layer stays pure enough to test.
+
+    m3a-panel packet   --draw d001 --k 1
+    m3a-panel validate --draw d001 --k 1 --labeller investigator --label t.json
+    m3a-panel order    --frozen investigator --labeller gpt56sol-high
+    m3a-panel resolve  --draw d001 --k 1 --label t.json --label g.json --label c.json
+    m3a-panel adjudicate --file adj.json
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent.parent
+REPO = HERE.parent.parent
+sys.path.insert(0, str(REPO / "src"))
+
+from corpus_analysis.audit import battery, fixtures, panel, registration  # noqa: E402
+from corpus_analysis.publication import refuse_publication_path  # noqa: E402
+from corpus_analysis.records import dumps  # noqa: E402
+
+TEMPLATE = HERE / "labelling" / "prompt-v1.txt"
+
+
+def load_context(root: Path, archive: Path, draw_id: str, k: int):
+    """The registered target, the evidence, and the response being labelled."""
+    reg = registration.load(root / "registration.json")
+    fx = fixtures.load(root / "fixture.json")
+    template = TEMPLATE.read_text(encoding="utf-8")
+
+    record_path = archive / f"{draw_id}-k{k}.json"
+    if not record_path.is_file():
+        raise SystemExit(f"no archived draw at {record_path}")
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    response = battery.archived_content(record)
+
+    evidence = "\n\n".join(span.text for span in fx.evidence)
+    #: k=1 challenges the registered frozen claim. Later rounds challenge the
+    #: bridge the finalized panel selected, which the caller supplies.
+    target = reg.target_quote if k == 1 else ""
+    return reg, fx, template, response, evidence, target
+
+
+def cmd_packet(args) -> int:
+    reg, _, template, response, evidence, target = load_context(
+        args.root, args.archive, args.draw, args.k)
+    target = args.target or target
+    if not target:
+        raise SystemExit(
+            "a round after the first is challenged on the finalized panel's "
+            "new_bridges[0]; pass it with --target")
+    #: The template is pinned by digest in the registration and preflight checks
+    #: it. `build_packet` raises if a placeholder is missing, which is the only
+    #: failure that could still produce a packet nobody could label.
+    pkt = panel.build_packet(template, args.draw, args.k, target, evidence,
+                             response)
+    if args.meta:
+        print(dumps(pkt.to_dict()))
+        return 0
+    if args.out:
+        refuse_publication_path(args.out)
+        Path(args.out).write_text(pkt.text, encoding="utf-8")
+        print(dumps(pkt.to_dict()), file=sys.stderr)
+        return 0
+    print(pkt.text, end="")
+    return 0
+
+
+def cmd_validate(args) -> int:
+    reg, _, _, response, _, target = load_context(
+        args.root, args.archive, args.draw, args.k)
+    target = args.target or target
+    label = json.loads(Path(args.label).read_text(encoding="utf-8"))
+
+    problems = panel.validate_label(label, response, target)
+    if str(label.get("labeller_id") or "") != args.labeller:
+        problems.append(
+            f"label says labeller_id {label.get('labeller_id')!r} but this is "
+            f"the {args.labeller} stage")
+    if problems:
+        print(f"REFUSED — {len(problems)} problem(s) with this structured label:",
+              file=sys.stderr)
+        for p in sorted(set(problems)):
+            print(f"  - {p}", file=sys.stderr)
+        return 2
+    print(dumps({"labeller_id": args.labeller, "draw_id": args.draw, "k": args.k,
+                 "label_sha256": panel.digest(label), "valid": True}))
+    return 0
+
+
+def cmd_order(args) -> int:
+    """Whether this stage may start, given which stages are already frozen."""
+    state = panel.StageState(frozen=list(args.frozen))
+    problems = state.may_launch(args.labeller)
+    if problems:
+        for p in problems:
+            print(f"  - {p}", file=sys.stderr)
+        return 2
+    print(dumps({"labeller_id": args.labeller, "may_launch": True,
+                 "frozen": list(args.frozen)}))
+    return 0
+
+
+def cmd_resolve(args) -> int:
+    reg, _, _, response, _, target = load_context(
+        args.root, args.archive, args.draw, args.k)
+    target = args.target or target
+
+    labels, digests = [], {}
+    for path in args.label:
+        label = json.loads(Path(path).read_text(encoding="utf-8"))
+        who = str(label.get("labeller_id") or "")
+        problems = panel.validate_label(label, response, target)
+        if problems:
+            print(f"REFUSED — {path} does not validate:", file=sys.stderr)
+            for p in problems:
+                print(f"  - {p}", file=sys.stderr)
+            return 2
+        labels.append(label)
+        digests[who] = panel.digest(label)
+
+    resolved = panel.resolve(labels, response, target, args.draw, args.k)
+    if resolved.get("error"):
+        print(f"REFUSED — {resolved['error']}", file=sys.stderr)
+        return 2
+
+    adjudications = [json.loads(Path(p).read_text(encoding="utf-8"))
+                     for p in args.adjudication]
+    for adj in adjudications:
+        problems = panel.adjudication_problems(adj)
+        if problems:
+            print("REFUSED — adjudication does not validate:", file=sys.stderr)
+            for p in problems:
+                print(f"  - {p}", file=sys.stderr)
+            return 2
+
+    final = panel.finalize(resolved, adjudications)
+    final["panel"] = panel.panel_block(final, digests)
+    final["target_ref"] = ("the registered frozen claim" if args.k == 1
+                           else "new_bridges[0] of the previous round")
+    if final.get("disputed"):
+        print(f"DISPUTED fields remain: {', '.join(final['disputed'])}. "
+              "Adjudication by the registered investigator is required, and is a "
+              "separate artifact.", file=sys.stderr)
+    print(dumps(final))
+    return 3 if final.get("disputed") else 0
+
+
+def cmd_adjudicate(args) -> int:
+    adj = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    problems = panel.adjudication_problems(adj)
+    if problems:
+        print("REFUSED — adjudication does not validate:", file=sys.stderr)
+        for p in problems:
+            print(f"  - {p}", file=sys.stderr)
+        return 2
+    print(dumps({"valid": True, "field": adj["field"],
+                 "adjudication_sha256": panel.digest(adj)}))
+    return 0
+
+
+def main() -> int:
+    os.umask(0o077)
+    ap = argparse.ArgumentParser(prog="m3a-panel")
+    ap.add_argument("--root", type=Path, default=HERE)
+    ap.add_argument("--archive", type=Path, default=HERE / "raw")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    def common(p):
+        p.add_argument("--draw", required=True)
+        p.add_argument("--k", type=int, required=True)
+        p.add_argument("--target", default="",
+                       help="the challenged claim; required for k > 1")
+
+    p = sub.add_parser("packet", help="render the packet all three labellers read")
+    common(p)
+    p.add_argument("--out", type=Path, default=None)
+    p.add_argument("--meta", action="store_true", help="print provenance only")
+    p.set_defaults(fn=cmd_packet)
+
+    p = sub.add_parser("validate", help="check one member's structured label")
+    common(p)
+    p.add_argument("--labeller", required=True, choices=list(panel.STAGE_ORDER))
+    p.add_argument("--label", type=Path, required=True)
+    p.set_defaults(fn=cmd_validate)
+
+    p = sub.add_parser("order", help="may this stage start yet?")
+    p.add_argument("--labeller", required=True, choices=list(panel.STAGE_ORDER))
+    p.add_argument("--frozen", nargs="*", default=[])
+    p.set_defaults(fn=cmd_order)
+
+    p = sub.add_parser("resolve", help="resolve three frozen labels")
+    common(p)
+    p.add_argument("--label", type=Path, action="append", required=True)
+    p.add_argument("--adjudication", type=Path, action="append", default=[])
+    p.set_defaults(fn=cmd_resolve)
+
+    p = sub.add_parser("adjudicate", help="validate an adjudication artifact")
+    p.add_argument("--file", type=Path, required=True)
+    p.set_defaults(fn=cmd_adjudicate)
+
+    args = ap.parse_args()
+    try:
+        return args.fn(args)
+    except (OSError, ValueError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

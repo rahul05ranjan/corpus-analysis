@@ -1,0 +1,409 @@
+#!/usr/bin/env python3
+"""Run the M3a battery, or refuse to.
+
+This script lives outside `src/` on purpose. The scan and audit layers hold no
+client of any kind — checked by reading, not by a test, since `9c4225d`
+removed the offline tripwire (AGENTS.md gate 2); a runner that reaches a
+local endpoint therefore cannot live in the package, and the deterministic half
+it depends on — rendering the payload, hashing it, preflight — does.
+
+It refuses by construction. `battery.preflight` returns reasons, and a non-empty
+list exits without a draw. There is no flag to bypass it: the failure mode the
+gate exists for is a criterion softened by the actor under pressure to finish.
+
+The battery is staged. The recursion rule says to challenge the first newly
+introduced bridge, and which spans are bridges is a
+semantic judgment the registration assigns to a non-subject reader — no
+automated judge is permitted. So the runner cannot decide on its own whether a
+round k+1 exists. It runs one round, archives it, and stops; the labeller
+quotes the bridges; `battery.ground` checks every quote against the archived
+response; and only then can the next round be built, from text that was
+observed rather than inferred.
+
+    m3a-run --dry-run                     preflight only, report what would run
+    m3a-run --selftest                    archive plumbing on a stub, no endpoint
+    m3a-run                               round 1, once preflight is clean
+    m3a-run --round 2 --labels k1.json    round 2, against validated bridges
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent.parent
+REPO = HERE.parent.parent
+sys.path.insert(0, str(REPO / "src"))
+
+from corpus_analysis.audit import battery, fixtures, registration  # noqa: E402
+from corpus_analysis.records import dumps  # noqa: E402
+
+
+def instrument_commit() -> str:
+    try:
+        out = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--short", "HEAD"],
+                             capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return out.stdout.strip() if out.returncode == 0 else ""
+
+
+#: What a draw must measure from the history rather than from a working tree:
+#: the registration and the two artifacts it pins. The machinery is not listed;
+#: a release tag pins the commit, and the commit pins the machinery.
+MUST_BE_COMMITTED = ("experiments/m3a/registration.json",
+                     "experiments/m3a/fixture.json",
+                     "experiments/m3a/runtime.json")
+
+
+def uncommitted_problems() -> list[str]:
+    """Registered bytes that differ from what git holds, or are untracked.
+
+    A signed registration living only in a working tree can be edited between
+    the signature and the draw with nothing recording that it moved, because the
+    digest of a file cannot be stored inside that file.
+
+    Lives in the runner rather than in `audit/` because the scan and audit
+    layers run no commands — checked by reading (AGENTS.md gate 2).
+    """
+    try:
+        out = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--",
+                              *MUST_BE_COMMITTED],
+                             capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError) as e:
+        return [f"cannot ask git whether the registration is committed: {e}"]
+    if out.returncode != 0:
+        return ["cannot ask git whether the registration is committed"]
+    problems = []
+    for line in out.stdout.splitlines():
+        state, _, path = line.strip().partition(" ")
+        problems.append(
+            f"{path.strip()} is not committed ({state}); a draw must measure "
+            "bytes that are in the history, not bytes in a working tree")
+    return sorted(problems)
+
+
+def load_all(root: Path):
+    reg = registration.load(root / "registration.json")
+    fx = fixtures.load(root / "fixture.json")
+    runtime = json.loads((root / "runtime.json").read_text(encoding="utf-8"))
+    return reg, fx, runtime
+
+
+#: The inference condition lives in `battery.request_config` so the scorer can
+#: rebuild it. A configuration only the runner can construct is one no archive
+#: can be checked against.
+#:
+#: One request per attempt at the registered budget. An empty completion is an
+#: invalid draw, archived with its reason and replaced under the same condition;
+#: re-sampling at a larger budget would make the accepted draws a sample from
+#: more than one distribution.
+request_config = battery.request_config
+
+
+def call_model(messages: list[dict], runtime: dict, endpoint: str) -> dict:
+    """One completion, one request, one fixed configuration."""
+    timeout = float(runtime.get("timeout_seconds") or 900)
+    body = dict(request_config(runtime), messages=messages)
+    req = urllib.request.Request(
+        endpoint, data=json.dumps(body).encode("utf-8"),
+        headers={"content-type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as fh:
+            resp = json.loads(fh.read().decode("utf-8", "replace"))
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        return {"error": f"endpoint unreachable or unreadable: {e}",
+                "response": {}, "content": ""}
+    choice = (resp.get("choices") or [{}])[0]
+    content = (choice.get("message") or {}).get("content") or ""
+    if not content.strip():
+        return {"error": f"no content at max_tokens={body.get('max_tokens')}",
+                "response": resp, "content": ""}
+    return {"response": resp, "content": content}
+
+
+def endpoint_for(runtime: dict) -> str:
+    """The registered default, overridden only by its named environment key."""
+    env_name = str(runtime.get("endpoint_env") or "")
+    if env_name and os.environ.get(env_name):
+        return os.environ[env_name]
+    return str(runtime.get("endpoint_default") or "")
+
+
+def archive(record: dict, out_dir: Path) -> Path:
+    """Write one raw draw before anything reads it.
+
+    The archive is the observation. It is written first, never edited, and
+    scoring reads it without writing back.
+    """
+    missing = battery.archive_shape(record)
+    if missing:
+        raise SystemExit(f"archive record is missing {missing}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{record['draw_id']}-k{record['k']}.json"
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        raise SystemExit(f"refusing to overwrite an archived draw: {path}") from None
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(dumps(record) + "\n")
+    return path
+
+
+def make_record(draw_id: str, k: int, messages: list[dict], result: dict,
+                reg, fx, runtime: dict, reg_digest: str,
+                preflight_ok: bool) -> dict:
+    """One raw draw, carrying what it takes to re-read the run condition.
+
+    `registration_sha256` is the digest of the signed registration's bytes, not
+    the payload digest. The payload pins what was asked; this pins the threshold,
+    the recursion cap, the taxonomy and the signature — everything that decides
+    what an answer means.
+    """
+    return {
+        "draw_id": draw_id, "k": k,
+        "registration_sha256": reg_digest,
+        "payload_sha256": battery.payload_sha256(fx),
+        "request_sha256": battery.request_sha256(messages),
+        "request_config": request_config(runtime),
+        "runtime_sha256": battery.runtime_sha256(runtime),
+        "instrument_commit": reg.instrument_commit,
+        "preflight_ok": preflight_ok,
+        "messages": messages,
+        "response": result.get("response", {}),
+        "content": result.get("content", ""),
+        "error": result.get("error", ""),
+        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "model": runtime.get("model"),
+    }
+
+
+def load_archive(out_dir: Path) -> list[dict]:
+    if not out_dir.is_dir():
+        return []
+    return [json.loads(p.read_text(encoding="utf-8"))
+            for p in sorted(out_dir.glob("*.json"))]
+
+
+def first_round_resume(records: list[dict], draws: int) -> tuple[dict, int, int]:
+    """Pending attempts and counters reconstructed from an immutable archive.
+
+    Round one permits at most twice the registered draw count so an invalid
+    response can be replaced without reusing an attempt id. Resuming therefore
+    starts after every archived attempt and counts valid observations already
+    present toward the stopping rule.
+    """
+    attempt_ids = [f"d{i:03d}" for i in range(1, draws * 2 + 1)]
+    allowed = set(attempt_ids)
+    archived: dict[str, dict] = {}
+    for record in records:
+        try:
+            round_number = int(record.get("k", 0))
+        except (TypeError, ValueError):
+            raise SystemExit(
+                f"archive record has an invalid round: {record.get('k')!r}") from None
+        if round_number != 1:
+            continue
+        draw_id = str(record.get("draw_id") or "")
+        if draw_id not in allowed:
+            raise SystemExit(
+                f"round-one archive holds an out-of-plan attempt id: {draw_id!r}")
+        if draw_id in archived:
+            raise SystemExit(
+                f"round-one archive holds attempt {draw_id} more than once")
+        archived[draw_id] = record
+
+    valid = sum(not battery.derive_invalid_reason(record)
+                for record in archived.values())
+    if valid > draws:
+        raise SystemExit(
+            f"round-one archive holds {valid} valid draws; registration fixes {draws}")
+    occupied = [draw_id for draw_id in attempt_ids if draw_id in archived]
+    if occupied != attempt_ids[:len(occupied)]:
+        raise SystemExit(
+            "round-one archive has a gap before a later attempt; refusing to "
+            "conceal a missing observation")
+    plan = {draw_id: [] for draw_id in attempt_ids if draw_id not in archived}
+    return plan, valid, len(archived)
+
+
+def chains_to_continue(records: list[dict], raw_labels: list[dict],
+                       target_k: int, cap: int) -> dict[str, list]:
+    """Per draw, the (response, next_quote) history for round `target_k`.
+
+    A draw continues only when the round before it introduced a bridge. The
+    quote challenged next is `new_bridges[0]` in the labeller's quoted order,
+    and it has already been checked against the archive by `battery.ground`, so
+    nothing here reaches text that was not observed.
+    """
+    content = {(str(r.get("draw_id")), int(r.get("k", 0))): r.get("content", "")
+               for r in records}
+    labels = {(str(d.get("draw_id")), int(d.get("k", 0))): d for d in raw_labels}
+    out: dict[str, list] = {}
+    for draw_id in sorted({d for d, _ in labels}):
+        history = []
+        for k in range(1, target_k):
+            label = labels.get((draw_id, k))
+            if label is None:
+                history = []
+                break
+            new_bridges = list(label.get("new_bridges") or [])
+            if not new_bridges:
+                history = []           # converged at k; the chain stops
+                break
+            history.append((content.get((draw_id, k), ""), new_bridges[0]))
+        if history and len(history) == target_k - 1 and target_k <= cap:
+            out[draw_id] = history
+    return out
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="m3a-run")
+    ap.add_argument("--root", type=Path, default=HERE)
+    ap.add_argument("--archive", type=Path, default=None,
+                    help="raw draw destination (default: <root>/raw)")
+    ap.add_argument("--round", type=int, default=1,
+                    help="correction round to run; >1 requires --labels")
+    ap.add_argument("--labels", type=Path, default=None,
+                    help="validated labels for every earlier round")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="preflight only; never contacts an endpoint")
+    ap.add_argument("--selftest", action="store_true",
+                    help="exercise archive plumbing on a stub response; requires --archive")
+    args = ap.parse_args()
+
+    if args.selftest and args.archive is None:
+        print("--selftest requires an explicit nonconfirmatory --archive destination",
+              file=sys.stderr)
+        return 2
+
+    root = args.root
+    out_dir = args.archive or (root / "raw")
+    reg, fx, runtime = load_all(root)
+    reg_digest = battery.registration_file_sha256(root / "registration.json")
+
+    def check() -> list[str]:
+        """Preflight, re-evaluated rather than remembered.
+
+        The registered invalid-draw criteria say the freeze must hold *at the
+        moment the draw was requested*, so this is called before every request
+        and its result is archived with the draw.
+        """
+        problems = battery.preflight(reg, fx, instrument_commit(), out_dir, REPO,
+                                     runtime=runtime)
+        if reg.status == "SIGNED" and not reg.signed_at:
+            problems.append("registration is SIGNED but records no signed_at")
+        return problems + uncommitted_problems()
+
+    if args.selftest:
+        from corpus_analysis.publication import publication_path_problem
+
+        problem = publication_path_problem(out_dir, REPO)
+        if problem:
+            print(f"REFUSED — {problem}", file=sys.stderr)
+            return 2
+        messages = battery.render_round_messages(
+            fx, reg.intervention, [],
+            (reg.protocol or {}).get("recursive_challenge_template", ""))
+        record = make_record("selftest", 1, messages,
+                             {"response": {"stub": True}, "content": "stub"},
+                             reg, fx, runtime, reg_digest, False)
+        record["selftest"] = True
+        print(f"NONCONFIRMATORY selftest archived {archive(record, out_dir)}")
+        return 0
+
+    problems = check()
+
+    print(f"registration {root / 'registration.json'}")
+    print(f"  status            {reg.status}")
+    print(f"  registration sha  {reg_digest}")
+    print(f"  instrument        {reg.instrument_commit} (lineage; the gate is "
+          f"the instrument file hashes)")
+    print(f"  working tree      {instrument_commit() or 'unknown'}")
+    print(f"  fixture           {reg.fixture_id}")
+    print(f"  payload sha256    {reg.payload_sha256}")
+    print(f"  draws             {reg.draws}")
+    print(f"  round             {args.round}")
+    print(f"  archive           {out_dir}")
+
+    if problems:
+        print(f"\nREFUSED — {len(problems)} blocking condition(s):", file=sys.stderr)
+        for p in problems:
+            print(f"  - {p}", file=sys.stderr)
+        print("\nNo draw was requested.", file=sys.stderr)
+        return 2
+
+    if args.dry_run:
+        print("\npreflight clean; --dry-run requested, no draw taken")
+        return 0
+
+    endpoint = endpoint_for(runtime)
+    template = (reg.protocol or {}).get("recursive_challenge_template", "")
+    existing = load_archive(out_dir)
+
+    if args.round == 1:
+        plan, valid_before, attempted_before = first_round_resume(
+            existing, reg.draws)
+        budget = reg.draws - valid_before
+    else:
+        valid_before, attempted_before = 0, 0
+        if not args.labels:
+            print("a round after the first is built from validated labels for "
+                  "every earlier round; pass --labels", file=sys.stderr)
+            return 2
+        raw_labels = json.loads(args.labels.read_text(encoding="utf-8"))
+        refusals = battery.ground(existing, raw_labels, reg, fx, reg_digest)
+        if refusals:
+            print(f"\nREFUSED — labels do not ground to the archive "
+                  f"({len(refusals)}):", file=sys.stderr)
+            for r in refusals:
+                print(f"  - {r}", file=sys.stderr)
+            return 2
+        plan = chains_to_continue(existing, raw_labels, args.round,
+                                  reg.recursion_cap or 0)
+        budget = len(plan)
+        if not plan:
+            print(f"\nno chain continues to round {args.round}: every draw "
+                  "converged or reached the registered cap")
+            return 0
+
+    taken, attempted = 0, attempted_before
+    for draw_id, history in sorted(plan.items()):
+        if taken >= budget:
+            break
+        attempted += 1
+        blocking = check()
+        messages = battery.render_round_messages(fx, reg.intervention, history,
+                                                 template)
+        if blocking:
+            result = {"error": "preflight did not pass at the moment the draw "
+                               f"was requested: {blocking[0]}",
+                      "response": {}, "content": ""}
+        else:
+            result = call_model(messages, runtime, endpoint)
+        record = make_record(draw_id, args.round, messages, result, reg, fx,
+                             runtime, reg_digest, not blocking)
+        archive(record, out_dir)
+        if not battery.derive_invalid_reason(record):
+            taken += 1
+        print(f"  {draw_id} k{args.round}: "
+              f"{'ok' if not result.get('error') else result['error']}")
+
+    total_valid = valid_before + taken
+    print(f"\n{total_valid} valid draws archived under {out_dir}")
+    if args.round == 1 and total_valid != reg.draws:
+        print(f"\nINCOMPLETE — the stopping rule fixes {reg.draws} valid draws "
+              f"and {total_valid} were taken in {attempted} attempts. This battery is "
+              "not confirmatory.", file=sys.stderr)
+        return 3
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

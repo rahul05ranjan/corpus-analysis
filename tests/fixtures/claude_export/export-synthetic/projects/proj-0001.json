@@ -1,0 +1,19 @@
+{
+  "uuid": "proj-0001",
+  "name": "synthetic project",
+  "description": "PROJECT DESCRIPTION THAT MUST NEVER BECOME A TYPED PROMPT",
+  "is_private": true,
+  "is_starter_project": false,
+  "prompt_template": "PROJECT INSTRUCTIONS THAT MUST NEVER BECOME A TYPED PROMPT",
+  "created_at": "2026-01-01T00:00:00.000000Z",
+  "updated_at": "2026-01-01T00:00:00.000000Z",
+  "creator": {"uuid": "account-0001"},
+  "docs": [
+    {
+      "uuid": "doc-0001",
+      "filename": "synthetic-knowledge.md",
+      "content": "PROJECT KNOWLEDGE THAT MUST NEVER BECOME A TYPED PROMPT",
+      "created_at": "2026-01-01T00:00:00.000000Z"
+    }
+  ]
+}

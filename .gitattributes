@@ -1,0 +1,8 @@
+# This project's claims are digests over exact bytes: fixture hashes, payload
+# hashes, registration hashes, per-line provenance verifiable with sha256sum.
+# Line-ending translation silently changes those bytes, so a Windows checkout
+# would compute different digests for identical content and every freeze check
+# would fail for a reason that has nothing to do with the freeze.
+#
+# Nothing in this repository is translated.
+* -text
