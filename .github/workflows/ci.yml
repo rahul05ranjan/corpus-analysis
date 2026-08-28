@@ -141,6 +141,12 @@ jobs:
         with:
           python-version: "3.14"
 
+      # Windows has no system IANA timezone database for zoneinfo to read.
+      # This is test infrastructure, not a package runtime dependency.
+      - name: Install Windows timezone data
+        if: runner.os == 'Windows'
+        run: python -m pip install tzdata
+
       # Invoked directly rather than through make: the Makefile assumes POSIX
       # tooling, and the point of this leg is that the Python is portable.
       - name: Tests

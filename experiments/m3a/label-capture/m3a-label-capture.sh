@@ -29,10 +29,7 @@ need() {
     command -v "$1" >/dev/null 2>&1 || die "$1 is required"
 }
 
-need sha256sum
 need python3
-need stat
-need find
 need cp
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -68,7 +65,13 @@ expand_home() {
 }
 
 sha_file() {
-    sha256sum -- "$1" | awk '{print $1}'
+    python3 - "$1" <<'PY'
+import hashlib
+from pathlib import Path
+import sys
+
+print(hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest())
+PY
 }
 
 next_draw_id() {
@@ -265,23 +268,37 @@ finalize_dir() {
     local stem="$2"
     local sums="$dir/$stem.SHA256SUMS"
 
-    (
-        cd "$dir"
-        find . -maxdepth 1 -type f \
-            \( -name "$stem.label.json" \
-               -o -name "$stem.transcript.txt" \
-               -o -name "$stem.screen-*" \
-               -o -name "$stem.provenance.json" \) \
-            -printf '%f\n' \
-            | LC_ALL=C sort \
-            | while IFS= read -r f; do sha256sum -- "$f"; done
-    ) > "$sums.tmp"
+    python3 - "$dir" "$stem" "$sums.tmp" <<'PY'
+import hashlib
+from pathlib import Path
+import sys
+
+directory, stem, out = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
+names = {
+    f"{stem}.label.json",
+    f"{stem}.transcript.txt",
+    f"{stem}.provenance.json",
+}
+files = sorted(
+    p for p in directory.iterdir()
+    if p.is_file() and (p.name in names or p.name.startswith(f"{stem}.screen-"))
+)
+lines = [f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}" for p in files]
+out.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+PY
 
     [[ -s "$sums.tmp" ]] || die "nothing captured for $stem"
     mv "$sums.tmp" "$sums"
     chmod 600 "$sums"
 
-    find "$dir" -maxdepth 1 -type f -name "$stem.*" -exec chmod 0444 {} +
+    python3 - "$dir" "$stem" <<'PY'
+from pathlib import Path
+import sys
+
+for path in Path(sys.argv[1]).glob(f"{sys.argv[2]}.*"):
+    if path.is_file():
+        path.chmod(0o444)
+PY
 
     printf '\nSHA256-pinned artifacts:\n'
     sed 's/^/  /' "$sums"
@@ -404,18 +421,28 @@ panel_finalize() {
     local run_root="$1"
     local sums="$run_root/PANEL.SHA256SUMS"
 
-    (
-        cd "$run_root"
-        find investigator gpt56sol-high fable5-high -type f \
-            \( -name '*.label.json' \
-               -o -name '*.transcript.txt' \
-               -o -name '*.screen-*' \
-               -o -name '*.provenance.json' \
-               -o -name '*.SHA256SUMS' \) \
-            -printf '%p\n' \
-            | LC_ALL=C sort \
-            | while IFS= read -r f; do sha256sum -- "$f"; done
-    ) > "$sums.tmp"
+    python3 - "$run_root" "$sums.tmp" <<'PY'
+import hashlib
+from pathlib import Path
+import sys
+
+root, out = Path(sys.argv[1]), Path(sys.argv[2])
+files = []
+for stage in ("investigator", "gpt56sol-high", "fable5-high"):
+    for path in (root / stage).rglob("*"):
+        name = path.name
+        if path.is_file() and (
+            name.endswith((".label.json", ".transcript.txt", ".provenance.json", ".SHA256SUMS"))
+            or ".screen-" in name
+        ):
+            files.append(path)
+files.sort(key=lambda path: path.relative_to(root).as_posix())
+lines = [
+    f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.relative_to(root).as_posix()}"
+    for path in files
+]
+out.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+PY
 
     [[ -s "$sums.tmp" ]] || die "panel manifest would be empty"
     mv "$sums.tmp" "$sums"

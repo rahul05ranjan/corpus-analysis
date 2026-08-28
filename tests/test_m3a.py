@@ -348,6 +348,7 @@ class TestResume(unittest.TestCase):
         self.assertEqual(list(plan), ["d001", "d002"])
         self.assertEqual((valid, attempted), (0, 0))
 
+    @unittest.skipIf(os.name == "nt", "capture is a POSIX shell workflow")
     def test_completed_stages_resume_by_finalizing_the_panel(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
