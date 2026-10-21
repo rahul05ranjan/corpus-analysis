@@ -763,6 +763,52 @@ class TestCodex(unittest.TestCase):
         with self.assertRaises(SchemaDrift):
             codex.probe(ref)
 
+    def _rollout(self, root: Path, source: object, name: str) -> Path:
+        """A minimal rollout whose session_meta carries the given `source`."""
+        path = root / f"rollout-2026-01-02T00-00-00-{name}.jsonl"
+        meta = {"type": "session_meta", "timestamp": "2026-01-02T00:00:00Z",
+                "payload": {"session_id": name, "cwd": "/tmp/proj-c",
+                            "cli_version": "0.9.0", "model": "model-c"}}
+        if source is not None:
+            meta["payload"]["source"] = source
+        user = {"type": "event_msg", "timestamp": "2026-01-02T00:01:00Z",
+                "payload": {"type": "user_message", "message": "probe the tree"}}
+        agent = {"type": "event_msg", "timestamp": "2026-01-02T00:02:00Z",
+                 "payload": {"type": "agent_message", "message": "done"}}
+        path.write_text("\n".join(json.dumps(r) for r in (meta, user, agent)),
+                        encoding="utf-8")
+        return path
+
+    def test_a_subagent_source_object_is_flagged_and_never_typed(self):
+        """Parent-agent writes into a subagent session are not operator prompts.
+
+        Subagent rollouts carry `payload.source` as an object rather than a
+        string (#1); without the check every message the parent wrote into the
+        subagent counted as a typed prompt and fed episode and temporal views.
+        """
+        with tempfile.TemporaryDirectory() as d:
+            path = self._rollout(Path(d), {"subagent": {"name": "probe"}}, "sess-sub")
+            ref = codex.sessions(Path(d))[0]
+            turns = list(codex.turns(ref))
+            self.assertTrue(all(t.flags["sidechain"] for t in turns))
+            self.assertFalse(any(t.flags.get("typed") for t in turns))
+            user = next(t for t in turns if t.role == "user")
+            self.assertEqual(user.chars["text"], len("probe the tree"))
+            self.assertEqual(user.text, "")
+            self.assertEqual(user.provenance.path, str(path))
+
+    def test_a_string_source_stays_an_operator_session(self):
+        """`source: "cli"` and an absent `source` both stay typed as before."""
+        with tempfile.TemporaryDirectory() as d:
+            self._rollout(Path(d), "cli", "sess-cli")
+            self._rollout(Path(d), None, "sess-old")
+            refs = {r.session_id: r for r in codex.sessions(Path(d))}
+            self.assertEqual(sorted(refs), ["sess-cli", "sess-old"])
+            for sid in refs:
+                turns = list(codex.turns(refs[sid]))
+                self.assertTrue(any(t.flags.get("typed") for t in turns))
+                self.assertFalse(any(t.flags.get("sidechain") for t in turns))
+
 
 class TestOpenCode(unittest.TestCase):
     def turns(self):
